@@ -1,0 +1,222 @@
+<!-- admin/dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Cart | Admin Dashboard</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body class="admin-body">
+  <!-- Sidebar -->
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="logo">🍔 FoodCart</a>
+      <button class="sidebar-close" id="sidebarClose">✕</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="active">📊 Dashboard</a>
+      <a href="menu.html">🍔 Menu Items</a>
+      <a href="orders.html">📦 Orders</a>
+      <a href="customers.html">👥 Customers</a>
+      <a href="reports.html">📈 Reports</a>
+      <a href="#" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-main">
+    <header class="admin-header">
+      <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+      <h1>Dashboard</h1>
+      <div class="admin-header-right">
+        <span class="admin-user">👤 Admin</span>
+      </div>
+    </header>
+
+    <div class="admin-content">
+      <!-- KPI Cards -->
+      <div class="kpi-grid" id="kpiGrid">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Recent Orders -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h2>Recent Orders</h2>
+          <a href="orders.html" class="btn btn-outline btn-sm">View All</a>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table" id="recentOrdersTable">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Top Selling Items -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h2>Top Selling Items</h2>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table" id="topItemsTable">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Category</th>
+                <th>Orders</th>
+                <th>Revenue</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay for mobile sidebar -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="../data/seed-data.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Auth check
+      if (localStorage.getItem('fc_admin_logged_in') !== 'true') {
+        window.location.href = '../login.html';
+        return;
+      }
+
+      // Sidebar toggle
+      const sidebar = document.getElementById('adminSidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      const toggle = document.getElementById('sidebarToggle');
+      const close = document.getElementById('sidebarClose');
+
+      function openSidebar() {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+      }
+      function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      }
+
+      toggle.addEventListener('click', openSidebar);
+      close.addEventListener('click', closeSidebar);
+      overlay.addEventListener('click', closeSidebar);
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (confirm('Are you sure you want to logout?')) {
+          localStorage.removeItem('fc_admin_logged_in');
+          window.location.href = '../login.html';
+        }
+      });
+
+      // Load Dashboard Data
+      loadDashboard();
+
+      function loadDashboard() {
+        const orders = getOrders();
+        const menuItems = getMenuItems();
+
+        // KPIs
+        const totalOrders = orders.length;
+        const pendingOrders = orders.filter(o => o.status === 'Pending' || o.status === 'Confirmed' || o.status === 'Preparing').length;
+        const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+        const totalMenuItems = menuItems.length;
+
+        document.getElementById('kpiGrid').innerHTML = `
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-icon">📦</div>
+            <div class="kpi-info">
+              <span class="kpi-value">${totalOrders}</span>
+              <span class="kpi-label">Total Orders</span>
+            </div>
+          </div>
+          <div class="kpi-card kpi-orange">
+            <div class="kpi-icon">⏳</div>
+            <div class="kpi-info">
+              <span class="kpi-value">${pendingOrders}</span>
+              <span class="kpi-label">Pending Orders</span>
+            </div>
+          </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-info">
+              <span class="kpi-value">$${totalRevenue.toFixed(2)}</span>
+              <span class="kpi-label">Total Revenue</span>
+            </div>
+          </div>
+          <div class="kpi-card kpi-purple">
+            <div class="kpi-icon">🍔</div>
+            <div class="kpi-info">
+              <span class="kpi-value">${totalMenuItems}</span>
+              <span class="kpi-label">Menu Items</span>
+            </div>
+          </div>
+        `;
+
+        // Recent Orders
+        const recent = [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+        const tbody = document.querySelector('#recentOrdersTable tbody');
+        if (recent.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center">No orders yet</td></tr>';
+        } else {
+          tbody.innerHTML = recent.map(o => `
+            <tr>
+              <td>#${o.id}</td>
+              <td>${o.customer.name}</td>
+              <td>$${o.total.toFixed(2)}</td>
+              <td><span class="status-badge status-${o.status.toLowerCase().replace(/\s+/g, '-')}">${o.status}</span></td>
+              <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+            </tr>
+          `).join('');
+        }
+
+        // Top Selling Items
+        const itemCounts = {};
+        orders.forEach(o => {
+          o.items.forEach(item => {
+            if (!itemCounts[item.name]) {
+              itemCounts[item.name] = { name: item.name, category: item.category || 'N/A', count: 0, revenue: 0 };
+            }
+            itemCounts[item.name].count += item.quantity;
+            itemCounts[item.name].revenue += item.price * item.quantity;
+          });
+        });
+        const topItems = Object.values(itemCounts).sort((a, b) => b.count - a.count).slice(0, 5);
+        const topTbody = document.querySelector('#topItemsTable tbody');
+        if (topItems.length === 0) {
+          topTbody.innerHTML = '<tr><td colspan="4" class="text-center">No sales data yet</td></tr>';
+        } else {
+          topTbody.innerHTML = topItems.map(item => `
+            <tr>
+              <td>${item.name}</td>
+              <td>${item.category}</td>
+              <td>${item.count}</td>
+              <td>$${item.revenue.toFixed(2)}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

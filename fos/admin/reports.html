@@ -1,0 +1,229 @@
+<!-- admin/reports.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Cart | Admin Reports</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body class="admin-body">
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="logo">🍔 FoodCart</a>
+      <button class="sidebar-close" id="sidebarClose">✕</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html">📊 Dashboard</a>
+      <a href="menu.html">🍔 Menu Items</a>
+      <a href="orders.html">📦 Orders</a>
+      <a href="customers.html">👥 Customers</a>
+      <a href="reports.html" class="active">📈 Reports</a>
+      <a href="#" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-header">
+      <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+      <h1>Reports</h1>
+    </header>
+
+    <div class="admin-content">
+      <!-- KPI Cards -->
+      <div class="kpi-grid" id="reportKpis">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Charts -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h2>Sales by Category</h2>
+        </div>
+        <div class="chart-container" id="categoryChart">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h2>Order Status Distribution</h2>
+        </div>
+        <div class="chart-container" id="statusChart">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h2>Top Selling Items</h2>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table" id="topItemsTable">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Category</th>
+                <th>Units Sold</th>
+                <th>Revenue</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="../data/seed-data.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (localStorage.getItem('fc_admin_logged_in') !== 'true') {
+        window.location.href = '../login.html';
+        return;
+      }
+
+      // Sidebar
+      const sidebar = document.getElementById('adminSidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      const toggle = document.getElementById('sidebarToggle');
+      const close = document.getElementById('sidebarClose');
+      function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('active'); }
+      function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('active'); }
+      toggle.addEventListener('click', openSidebar);
+      close.addEventListener('click', closeSidebar);
+      overlay.addEventListener('click', closeSidebar);
+
+      document.getElementById('logoutBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (confirm('Logout?')) {
+          localStorage.removeItem('fc_admin_logged_in');
+          window.location.href = '../login.html';
+        }
+      });
+
+      // Reports
+      const orders = getOrders();
+
+      // KPIs
+      const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+      const totalOrders = orders.length;
+      const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+      const totalItemsSold = orders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0);
+
+      document.getElementById('reportKpis').innerHTML = `
+        <div class="kpi-card kpi-green">
+          <div class="kpi-icon">💰</div>
+          <div class="kpi-info">
+            <span class="kpi-value">$${totalRevenue.toFixed(2)}</span>
+            <span class="kpi-label">Total Revenue</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-icon">📦</div>
+          <div class="kpi-info">
+            <span class="kpi-value">${totalOrders}</span>
+            <span class="kpi-label">Total Orders</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-orange">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-info">
+            <span class="kpi-value">$${avgOrderValue.toFixed(2)}</span>
+            <span class="kpi-label">Avg Order Value</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-icon">🍔</div>
+          <div class="kpi-info">
+            <span class="kpi-value">${totalItemsSold}</span>
+            <span class="kpi-label">Items Sold</span>
+          </div>
+        </div>
+      `;
+
+      // Sales by Category
+      const categorySales = {};
+      orders.forEach(o => {
+        o.items.forEach(item => {
+          const cat = item.category || 'Other';
+          if (!categorySales[cat]) categorySales[cat] = 0;
+          categorySales[cat] += item.price * item.quantity;
+        });
+      });
+
+      const maxCatSale = Math.max(...Object.values(categorySales), 1);
+      const catChart = document.getElementById('categoryChart');
+      if (Object.keys(categorySales).length === 0) {
+        catChart.innerHTML = '<p class="text-muted">No sales data yet.</p>';
+      } else {
+        catChart.innerHTML = Object.entries(categorySales).map(([cat, amount]) => `
+          <div class="chart-bar-row">
+            <span class="chart-label">${cat}</span>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="width: ${(amount / maxCatSale) * 100}%"></div>
+            </div>
+            <span class="chart-value">$${amount.toFixed(2)}</span>
+          </div>
+        `).join('');
+      }
+
+      // Order Status Distribution
+      const statusCounts = {};
+      orders.forEach(o => {
+        statusCounts[o.status] = (statusCounts[o.status] || 0) + 1;
+      });
+
+      const maxStatusCount = Math.max(...Object.values(statusCounts), 1);
+      const statusChart = document.getElementById('statusChart');
+      if (Object.keys(statusCounts).length === 0) {
+        statusChart.innerHTML = '<p class="text-muted">No order data yet.</p>';
+      } else {
+        statusChart.innerHTML = Object.entries(statusCounts).map(([status, count]) => `
+          <div class="chart-bar-row">
+            <span class="chart-label">${status}</span>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar chart-bar-status" style="width: ${(count / maxStatusCount) * 100}%"></div>
+            </div>
+            <span class="chart-value">${count}</span>
+          </div>
+        `).join('');
+      }
+
+      // Top Selling Items
+      const itemSales = {};
+      orders.forEach(o => {
+        o.items.forEach(item => {
+          if (!itemSales[item.name]) {
+            itemSales[item.name] = { name: item.name, category: item.category || 'Other', units: 0, revenue: 0 };
+          }
+          itemSales[item.name].units += item.quantity;
+          itemSales[item.name].revenue += item.price * item.quantity;
+        });
+      });
+
+      const topItems = Object.values(itemSales).sort((a, b) => b.units - a.units).slice(0, 10);
+      const topTbody = document.querySelector('#topItemsTable tbody');
+      if (topItems.length === 0) {
+        topTbody.innerHTML = '<tr><td colspan="4" class="text-center">No sales data yet</td></tr>';
+      } else {
+        topTbody.innerHTML = topItems.map(item => `
+          <tr>
+            <td>${item.name}</td>
+            <td>${item.category}</td>
+            <td>${item.units}</td>
+            <td>$${item.revenue.toFixed(2)}</td>
+          </tr>
+        `).join('');
+      }
+    });
+  </script>
+</body>
+</html>

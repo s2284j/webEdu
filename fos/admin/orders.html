@@ -1,0 +1,232 @@
+<!-- admin/orders.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Cart | Admin Orders</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body class="admin-body">
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="logo">🍔 FoodCart</a>
+      <button class="sidebar-close" id="sidebarClose">✕</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html">📊 Dashboard</a>
+      <a href="menu.html">🍔 Menu Items</a>
+      <a href="orders.html" class="active">📦 Orders</a>
+      <a href="customers.html">👥 Customers</a>
+      <a href="reports.html">📈 Reports</a>
+      <a href="#" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-header">
+      <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+      <h1>Order Management</h1>
+    </header>
+
+    <div class="admin-content">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div class="admin-search-wrap">
+            <input type="text" id="orderSearch" placeholder="Search order ID or customer..." class="search-input">
+          </div>
+          <div class="admin-filters">
+            <select id="statusFilter" class="form-select">
+              <option value="all">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Preparing">Preparing</option>
+              <option value="Out for Delivery">Out for Delivery</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+            <input type="date" id="dateFilter" class="form-input">
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table" id="ordersTable">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Status Update Modal -->
+  <div class="modal-overlay" id="statusModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Update Status</h2>
+        <button class="modal-close" id="statusModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Order ID: <strong id="statusOrderId"></strong></p>
+        <div class="form-group">
+          <label for="statusSelect">New Status</label>
+          <select id="statusSelect" class="form-select">
+            <option value="Pending">Pending</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Preparing">Preparing</option>
+            <option value="Out for Delivery">Out for Delivery</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="statusCancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="statusSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="../data/seed-data.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (localStorage.getItem('fc_admin_logged_in') !== 'true') {
+        window.location.href = '../login.html';
+        return;
+      }
+
+      // Sidebar
+      const sidebar = document.getElementById('adminSidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      const toggle = document.getElementById('sidebarToggle');
+      const close = document.getElementById('sidebarClose');
+      function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('active'); }
+      function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('active'); }
+      toggle.addEventListener('click', openSidebar);
+      close.addEventListener('click', closeSidebar);
+      overlay.addEventListener('click', closeSidebar);
+
+      document.getElementById('logoutBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (confirm('Logout?')) {
+          localStorage.removeItem('fc_admin_logged_in');
+          window.location.href = '../login.html';
+        }
+      });
+
+      // Orders Management
+      let orders = getOrders();
+      let searchTerm = '';
+      let statusFilter = 'all';
+      let dateFilter = '';
+      let currentOrderId = null;
+
+      const tableBody = document.querySelector('#ordersTable tbody');
+      const statusModal = document.getElementById('statusModal');
+      const statusSelect = document.getElementById('statusSelect');
+      const statusOrderId = document.getElementById('statusOrderId');
+
+      function renderOrders() {
+        const filtered = orders.filter(order => {
+          const matchSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              order.customer.name.toLowerCase().includes(searchTerm.toLowerCase());
+          const matchStatus = statusFilter === 'all' || order.status === statusFilter;
+          const matchDate = !dateFilter || order.createdAt.startsWith(dateFilter);
+          return matchSearch && matchStatus && matchDate;
+        });
+
+        if (filtered.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No orders found</td></tr>';
+          return;
+        }
+
+        // Sort newest first
+        const sorted = [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        tableBody.innerHTML = sorted.map(order => `
+          <tr>
+            <td>#${order.id}</td>
+            <td>${order.customer.name}<br><small>${order.customer.phone}</small></td>
+            <td>${order.items.length}</td>
+            <td>$${order.total.toFixed(2)}</td>
+            <td><span class="status-badge status-${order.status.toLowerCase().replace(/\s+/g, '-')}">${order.status}</span></td>
+            <td>${new Date(order.createdAt).toLocaleDateString()}</td>
+            <td class="actions-cell">
+              <button class="btn-icon view-invoice-btn" data-id="${order.id}" title="View Invoice">📄</button>
+              <button class="btn-icon update-status-btn" data-id="${order.id}" title="Update Status">🔄</button>
+            </td>
+          </tr>
+        `).join('');
+
+        // Attach events
+        document.querySelectorAll('.view-invoice-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            window.open(`../invoice.html?id=${btn.dataset.id}`, '_blank');
+          });
+        });
+
+        document.querySelectorAll('.update-status-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const order = orders.find(o => o.id === id);
+            if (order) {
+              currentOrderId = id;
+              statusOrderId.textContent = `#${id}`;
+              statusSelect.value = order.status;
+              statusModal.classList.add('active');
+            }
+          });
+        });
+      }
+
+      // Status modal
+      document.getElementById('statusModalClose').addEventListener('click', () => statusModal.classList.remove('active'));
+      document.getElementById('statusCancel').addEventListener('click', () => statusModal.classList.remove('active'));
+      document.getElementById('statusSave').addEventListener('click', () => {
+        if (!currentOrderId) return;
+        const order = orders.find(o => o.id === currentOrderId);
+        if (order) {
+          order.status = statusSelect.value;
+          saveOrders(orders);
+          showToast('Order status updated', 'success');
+          statusModal.classList.remove('active');
+          renderOrders();
+        }
+      });
+
+      // Search and filters
+      document.getElementById('orderSearch').addEventListener('input', (e) => {
+        searchTerm = e.target.value;
+        renderOrders();
+      });
+      document.getElementById('statusFilter').addEventListener('change', (e) => {
+        statusFilter = e.target.value;
+        renderOrders();
+      });
+      document.getElementById('dateFilter').addEventListener('change', (e) => {
+        dateFilter = e.target.value;
+        renderOrders();
+      });
+
+      // Initial render
+      renderOrders();
+    });
+  </script>
+</body>
+</html>

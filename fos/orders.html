@@ -1,0 +1,101 @@
+<!-- orders.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Cart | My Orders</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">🍔 FoodCart</a>
+      <nav class="main-nav">
+        <a href="index.html">Home</a>
+        <a href="menu.html">Menu</a>
+        <a href="orders.html" class="active">Orders</a>
+        <a href="login.html">Login</a>
+      </nav>
+      <div class="cart-icon-wrap">
+        <a href="cart.html" class="cart-icon">🛒 <span id="cartCount" class="cart-count">0</span></a>
+      </div>
+      <button class="mobile-toggle" id="mobileToggle">☰</button>
+    </div>
+  </header>
+
+  <main class="container section">
+    <h1 class="page-title">My Orders</h1>
+
+    <div class="orders-list" id="ordersList">
+      <!-- Populated by JS -->
+    </div>
+
+    <div id="emptyOrders" class="empty-state" style="display:none;">
+      <span class="empty-icon">📦</span>
+      <h2>No orders yet</h2>
+      <p>Your order history will appear here.</p>
+      <a href="menu.html" class="btn btn-primary">Start Ordering</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>&copy; 2026 FoodCart System. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="menu.html">Menu</a>
+        <a href="orders.html">Orders</a>
+        <a href="login.html">Admin</a>
+      </div>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="data/seed-data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const orders = getOrders();
+      const list = document.getElementById('ordersList');
+      const empty = document.getElementById('emptyOrders');
+
+      if (orders.length === 0) {
+        list.innerHTML = '';
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        // Sort by newest first
+        const sorted = [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        list.innerHTML = sorted.map(order => `
+          <div class="order-card">
+            <div class="order-header">
+              <div>
+                <span class="order-id">#${order.id}</span>
+                <span class="order-date">${formatDate(order.createdAt)}</span>
+              </div>
+              <span class="status-badge status-${order.status.toLowerCase().replace(/\s+/g, '-')}">${order.status}</span>
+            </div>
+            <div class="order-body">
+              <div class="order-info">
+                <p><strong>Items:</strong> ${order.items.length}</p>
+                <p><strong>Total:</strong> $${order.total.toFixed(2)}</p>
+                <p><strong>Payment:</strong> ${order.paymentMethod}</p>
+              </div>
+              <a href="invoice.html?id=${order.id}" class="btn btn-outline btn-sm">View Invoice</a>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      updateCartCount();
+    });
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!-- admin/customers.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Cart | Admin Customers</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body class="admin-body">
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="logo">🍔 FoodCart</a>
+      <button class="sidebar-close" id="sidebarClose">✕</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html">📊 Dashboard</a>
+      <a href="menu.html">🍔 Menu Items</a>
+      <a href="orders.html">📦 Orders</a>
+      <a href="customers.html" class="active">👥 Customers</a>
+      <a href="reports.html">📈 Reports</a>
+      <a href="#" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-header">
+      <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+      <h1>Customers</h1>
+    </header>
+
+    <div class="admin-content">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div class="admin-search-wrap">
+            <input type="text" id="customerSearch" placeholder="Search customers..." class="search-input">
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table" id="customersTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Total Orders</th>
+                <th>Total Spent</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="../data/seed-data.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (localStorage.getItem('fc_admin_logged_in') !== 'true') {
+        window.location.href = '../login.html';
+        return;
+      }
+
+      // Sidebar
+      const sidebar = document.getElementById('adminSidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      const toggle = document.getElementById('sidebarToggle');
+      const close = document.getElementById('sidebarClose');
+      function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('active'); }
+      function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('active'); }
+      toggle.addEventListener('click', openSidebar);
+      close.addEventListener('click', closeSidebar);
+      overlay.addEventListener('click', closeSidebar);
+
+      document.getElementById('logoutBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (confirm('Logout?')) {
+          localStorage.removeItem('fc_admin_logged_in');
+          window.location.href = '../login.html';
+        }
+      });
+
+      // Customers Management
+      let customers = getCustomers();
+      const orders = getOrders();
+      let searchTerm = '';
+
+      const tableBody = document.querySelector('#customersTable tbody');
+
+      function renderCustomers() {
+        // Enrich customers with order stats
+        const enriched = customers.map(c => {
+          const customerOrders = orders.filter(o => o.customer.phone === c.phone || o.customer.email === c.email);
+          const totalSpent = customerOrders.reduce((sum, o) => sum + o.total, 0);
+          return {
+            ...c,
+            totalOrders: customerOrders.length,
+            totalSpent
+          };
+        });
+
+        const filtered = enriched.filter(c => {
+          const matchSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              c.phone.includes(searchTerm) ||
+                              c.email.toLowerCase().includes(searchTerm.toLowerCase());
+          return matchSearch;
+        });
+
+        if (filtered.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No customers found</td></tr>';
+          return;
+        }
+
+        tableBody.innerHTML = filtered.map(c => `
+          <tr>
+            <td>${c.name}</td>
+            <td>${c.phone}</td>
+            <td>${c.email || '-'}</td>
+            <td>${c.address || '-'}</td>
+            <td>${c.totalOrders}</td>
+            <td>$${c.totalSpent.toFixed(2)}</td>
+          </tr>
+        `).join('');
+      }
+
+      document.getElementById('customerSearch').addEventListener('input', (e) => {
+        searchTerm = e.target.value;
+        renderCustomers();
+      });
+
+      renderCustomers();
+    });
+  </script>
+</body>
+</html>

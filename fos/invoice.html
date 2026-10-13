@@ -1,0 +1,62 @@
+<!-- invoice.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Cart | Invoice</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    @media print {
+      .site-header, .site-footer, .no-print, #toast { display: none !important; }
+      .invoice-container { box-shadow: none; border: 1px solid #ddd; margin: 0; padding: 20px; }
+      body { background: white; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header no-print">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">🍔 FoodCart</a>
+      <nav class="main-nav">
+        <a href="index.html">Home</a>
+        <a href="menu.html">Menu</a>
+        <a href="orders.html">Orders</a>
+        <a href="login.html">Login</a>
+      </nav>
+      <div class="cart-icon-wrap">
+        <a href="cart.html" class="cart-icon">🛒 <span id="cartCount" class="cart-count">0</span></a>
+      </div>
+      <button class="mobile-toggle" id="mobileToggle">☰</button>
+    </div>
+  </header>
+
+  <main class="container section">
+    <div class="invoice-container" id="invoiceContainer">
+      <!-- Populated by JS -->
+    </div>
+    <div class="no-print" style="text-align:center; margin-top: 20px;">
+      <button class="btn btn-primary" onclick="window.print()">Print Invoice</button>
+      <a href="orders.html" class="btn btn-outline">Back to Orders</a>
+    </div>
+  </main>
+
+  <footer class="site-footer no-print">
+    <div class="container footer-inner">
+      <p>&copy; 2026 FoodCart System. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="menu.html">Menu</a>
+        <a href="orders.html">Orders</a>
+        <a href="login.html">Admin</a>
+      </div>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="data/seed-data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/invoice.js"></script>
+</body>
+</html>

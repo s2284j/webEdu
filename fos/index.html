@@ -1,0 +1,156 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Cart | Home</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">🍔 FoodCart</a>
+      <nav class="main-nav">
+        <a href="index.html" class="active">Home</a>
+        <a href="menu.html">Menu</a>
+        <a href="orders.html">Orders</a>
+        <a href="login.html">Login</a>
+      </nav>
+      <div class="cart-icon-wrap">
+        <a href="cart.html" class="cart-icon">🛒 <span id="cartCount" class="cart-count">0</span></a>
+      </div>
+      <button class="mobile-toggle" id="mobileToggle">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container hero-inner">
+        <div class="hero-content">
+          <h1>Fresh Food Great Taste</h1>
+          <p>Delicious food, delivered from our cart to your door.</p>
+          <a href="menu.html" class="btn btn-primary">View Menu</a>
+        </div>
+        <div class="hero-image">
+          <img src="assets/images/hero-burger.jpg" alt="Delicious burger" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%23f0f0f0%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 font-size=%2224%22 text-anchor=%22middle%22 fill=%22%23999%22%3EBurger Image%3C/text%3E%3C/svg%3E'">
+        </div>
+      </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="section categories-section">
+      <div class="container">
+        <h2 class="section-title">Browse Categories</h2>
+        <div class="category-grid" id="categoryGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Items -->
+    <section class="section featured-section">
+      <div class="container">
+        <h2 class="section-title">Featured Items</h2>
+        <div class="food-grid" id="featuredGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Benefits -->
+    <section class="section benefits-section">
+      <div class="container">
+        <h2 class="section-title">Why Choose Us</h2>
+        <div class="benefits-grid">
+          <div class="benefit-card">
+            <span class="benefit-icon">🥬</span>
+            <h3>Fresh Ingredients</h3>
+            <p>We source the best local produce daily.</p>
+          </div>
+          <div class="benefit-card">
+            <span class="benefit-icon">⚡</span>
+            <h3>Fast Delivery</h3>
+            <p>Hot food at your door in 30 minutes.</p>
+          </div>
+          <div class="benefit-card">
+            <span class="benefit-icon">📱</span>
+            <h3>Easy Ordering</h3>
+            <p>Order online in just a few clicks.</p>
+          </div>
+          <div class="benefit-card">
+            <span class="benefit-icon">🏆</span>
+            <h3>Best Quality</h3>
+            <p>Premium taste guaranteed every time.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>&copy; 2026 FoodCart System. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="menu.html">Menu</a>
+        <a href="orders.html">Orders</a>
+        <a href="login.html">Admin</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script src="data/seed-data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Render categories
+      const catGrid = document.getElementById('categoryGrid');
+      const categories = ['Burgers', 'Pizza', 'Snacks', 'Drinks', 'Desserts'];
+      catGrid.innerHTML = categories.map(cat => `
+        <a href="menu.html?category=${encodeURIComponent(cat)}" class="category-card">
+          <span class="category-icon">${getCategoryIcon(cat)}</span>
+          <span class="category-name">${cat}</span>
+        </a>
+      `).join('');
+
+      // Render featured items (first 6)
+      const featuredGrid = document.getElementById('featuredGrid');
+      const menuItems = getMenuItems();
+      featuredGrid.innerHTML = menuItems.slice(0, 6).map(item => createFoodCard(item)).join('');
+
+      // Update cart count
+      updateCartCount();
+
+      // Re-attach add-to-cart events
+      document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const id = parseInt(btn.dataset.id);
+          addToCart(id);
+        });
+      });
+
+      // Mobile toggle
+      const mobileToggle = document.getElementById('mobileToggle');
+      const mainNav = document.querySelector('.main-nav');
+      if (mobileToggle) {
+        mobileToggle.addEventListener('click', () => {
+          mainNav.classList.toggle('open');
+        });
+      }
+    });
+
+    function getCategoryIcon(cat) {
+      const icons = { Burgers: '🍔', Pizza: '🍕', Snacks: '🍟', Drinks: '🥤', Desserts: '🍰' };
+      return icons[cat] || '🍽️';
+    }
+  </script>
+</body>
+</html>
